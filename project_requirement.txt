@@ -1,4 +1,4 @@
----Code Requirements---
+---Requirements---
 Python 3.6+
 Opencv(pip install opencv-python)
 Tkinter(Available in python)
