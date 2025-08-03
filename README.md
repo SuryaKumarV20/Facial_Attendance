@@ -10,6 +10,7 @@
 - Create a `TrainingImage` folder in a project folder.
 - open `attendance.py` and `automaticAttendance.py`, change all the path accoriding to your system
 - Run `attandance.py` file
+- Run the gui.py file # for UI to take images if entered the roll no and name.And attendance is marked in csv file.
 
 ### Project flow & explaination
 - After you run the project you have to register your face so that system can identify you, so click on register new student
