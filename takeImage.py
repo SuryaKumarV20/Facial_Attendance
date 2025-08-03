@@ -1,68 +1,61 @@
+import cv2
+import os
 import csv
-import os, cv2
-import numpy as np
-import pandas as pd
-import datetime
-import time
 
+def TakeImage(enrollment, name):
+    haar_cascade_path = "haarcascade_frontalface_default.xml"
+    trainimage_path = "TrainingImage"
 
+    if enrollment.strip() == "" or name.strip() == "":
+        print("[ERROR] Enrollment number or Name is missing.")
+        return
 
-# take Image of user
-def TakeImage(l1, l2, haarcasecade_path, trainimage_path, message, err_screen,text_to_speech):
-    if (l1 == "") and (l2==""):
-        t='Please Enter the your Enrollment Number and Name.'
-        text_to_speech(t)
-    elif l1=='':
-        t='Please Enter the your Enrollment Number.'
-        text_to_speech(t)
-    elif l2 == "":
-        t='Please Enter the your Name.'
-        text_to_speech(t)
-    else:
-        try:
-            cam = cv2.VideoCapture(0)
-            detector = cv2.CascadeClassifier(haarcasecade_path)
-            Enrollment = l1
-            Name = l2
-            sampleNum = 0
-            directory = Enrollment + "_" + Name
-            path = os.path.join(trainimage_path, directory)
-            os.mkdir(path)
-            while True:
-                ret, img = cam.read()
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                faces = detector.detectMultiScale(gray, 1.3, 5)
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                    sampleNum = sampleNum + 1
-                    cv2.imwrite(
-                        f"{path}\ "
-                        + Name
-                        + "_"
-                        + Enrollment
-                        + "_"
-                        + str(sampleNum)
-                        + ".jpg",
-                        gray[y : y + h, x : x + w],
-                    )
-                    cv2.imshow("Frame", img)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
-                elif sampleNum > 50:
-                    break
-            cam.release()
-            cv2.destroyAllWindows()
-            row = [Enrollment, Name]
-            with open(
-                "StudentDetails/studentdetails.csv",
-                "a+",
-            ) as csvFile:
-                writer = csv.writer(csvFile, delimiter=",")
-                writer.writerow(row)
-                csvFile.close()
-            res = "Images Saved for ER No:" + Enrollment + " Name:" + Name
-            message.configure(text=res)
-            text_to_speech(res)
-        except FileExistsError as F:
-            F = "Student Data already exists"
-            text_to_speech(F)
+    try:
+        if not os.path.exists(trainimage_path):
+            os.makedirs(trainimage_path)
+
+        cam = cv2.VideoCapture(0)
+        detector = cv2.CascadeClassifier(haar_cascade_path)
+        sampleNum = 0
+
+        print("[INFO] Starting to capture images. Press 'q' to quit.")
+
+        while True:
+            ret, img = cam.read()
+            if not ret:
+                print("[ERROR] Failed to open camera.")
+                break
+
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            faces = detector.detectMultiScale(gray, 1.3, 5)
+
+            for (x, y, w, h) in faces:
+                sampleNum += 1
+                face_img = gray[y:y+h, x:x+w]
+                filename = f"{enrollment}_{name}_{sampleNum}.jpg"
+                filepath = os.path.join(trainimage_path, filename)
+                cv2.imwrite(filepath, face_img)
+                cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+                cv2.imshow("Capturing Images", img)
+
+            if cv2.waitKey(1) & 0xFF == ord('q') or sampleNum >= 50:
+                break
+
+        cam.release()
+        cv2.destroyAllWindows()
+
+        # Save to CSV
+        with open("StudentDetails/studentdetails.csv", "a+", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([enrollment, name])
+
+        print(f"[✅] Images Saved for ER No: {enrollment}, Name: {name}")
+
+    except Exception as e:
+        print(f"[❌ ERROR] {e}")
+
+# 👇 Run only when executed directly
+if __name__ == "__main__":
+    enrollment = input("Enter Enrollment Number: ")
+    name = input("Enter Name: ")
+    TakeImage(enrollment.strip(), name.strip())

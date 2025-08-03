@@ -1,38 +1,48 @@
-import csv
-import os, cv2
+import os
+import cv2
 import numpy as np
-import pandas as pd
-import datetime
-import time
-from PIL import ImageTk, Image
+from PIL import Image
 
+def train_classifier():
+    data_dir = "TrainingImage"
+    if not os.path.exists(data_dir):
+        print("[❌] TrainingImage folder not found.")
+        return
 
-# Train Image
-def TrainImage(haarcasecade_path, trainimage_path, trainimagelabel_path, message,text_to_speech):
-    recognizer = cv2.face.LBPHFaceRecognizer_create()
-    detector = cv2.CascadeClassifier(haarcasecade_path)
-    faces, Id = getImagesAndLables(trainimage_path)
-    recognizer.train(faces, np.array(Id))
-    recognizer.save(trainimagelabel_path)
-    res = "Image Trained successfully"  # +",".join(str(f) for f in Id)
-    message.configure(text=res)
-    text_to_speech(res)
-
-
-def getImagesAndLables(path):
-    # imagePath = [os.path.join(path, f) for d in os.listdir(path) for f in d]
-    newdir = [os.path.join(path, d) for d in os.listdir(path)]
-    imagePath = [
-        os.path.join(newdir[i], f)
-        for i in range(len(newdir))
-        for f in os.listdir(newdir[i])
-    ]
+    image_paths = [os.path.join(data_dir, f) for f in os.listdir(data_dir)]
     faces = []
-    Ids = []
-    for imagePath in imagePath:
-        pilImage = Image.open(imagePath).convert("L")
-        imageNp = np.array(pilImage, "uint8")
-        Id = int(os.path.split(imagePath)[-1].split("_")[1])
-        faces.append(imageNp)
-        Ids.append(Id)
-    return faces, Ids
+    ids = []
+
+    print(f"[INFO] Found {len(image_paths)} image files for training...")
+
+    for image_path in image_paths:
+        try:
+            img = Image.open(image_path).convert('L')
+            image_np = np.array(img, 'uint8')
+            filename = os.path.split(image_path)[-1]
+            id_str = filename.split('_')[0]
+
+            # Handle non-integer ID by hashing
+            id_num = abs(hash(id_str)) % (10 ** 8)
+
+            faces.append(image_np)
+            ids.append(id_num)
+            print(f"[+] Processed {filename} => ID: {id_num}")
+
+        except Exception as e:
+            print(f"[⚠️] Skipping file {image_path}: {e}")
+
+    if not faces:
+        print("[❌] No faces found for training. Please check image data.")
+        return
+
+    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    recognizer.train(faces, np.array(ids))
+
+    if not os.path.exists("TrainingImageLabel"):
+        os.makedirs("TrainingImageLabel")
+
+    recognizer.save("TrainingImageLabel/trainner.yml")
+    print("[✅] Training complete. Model saved as trainner.yml")
+
+train_classifier()
